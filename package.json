@@ -2,10 +2,9 @@
   "name": "@calendar-app/source",
   "version": "0.0.0",
   "license": "MIT",
- "scripts": {
-  "build-backend": "nx build backend"
-},
-
+  "scripts": {
+    "build-backend": "nx build backend"
+  },
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,6 +21,7 @@
     "axios": "^1.6.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "jwt-decode": "^4.0.0",
     "react": "19.0.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "19.0.0",

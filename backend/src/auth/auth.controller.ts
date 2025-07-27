@@ -1,4 +1,14 @@
-import { Controller, Post, Body, BadRequestException, Put, Get, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  Put,
+  Get,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -27,23 +37,30 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     if (!dto.email || !dto.password) {
-      throw new BadRequestException('Email и password се задолжителни.');
+      throw new BadRequestException('Email and password are required');
     }
     return await this.authService.login(dto);
   }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Get('profile')
-  // async getProfile(@Req() req: Request & { user: JwtPayload }) {
-  //   return this.authService.getProfile(req.user.userId);
-  // }
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: { email: string; oldPassword: string; newPassword: string }
+  ) {
+    console.log('BODY', body);
 
-  // @UseGuards(JwtAuthGuard)
-  // @Put('users/change-password')
-  // async changePassword(@Req() req: Request & { user: JwtPayload }, @Body() dto: ChangePasswordDto) {
-  //   return this.authService.changePassword(req.user.userId, dto);
-  // }
+    return this.authService.resetPasswordWithEmail(
+      body.email,
+      body.oldPassword,
+      body.newPassword
+    );
+  }
 
+  @Get('profile')
+  async getProfile(@Query('userId') userId: string) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
 
-
+    return this.authService.getProfileById(Number(userId));
+  }
 }

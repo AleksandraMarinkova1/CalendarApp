@@ -13,7 +13,6 @@ body.dark-mode .MuiInputBase-root {
   color: #fff !important;
 }
 
-/* Дополнително, ако некои контроли не се препокриваат, можеш да додадеш уште стилови */
 body.dark-mode .MuiList-root {
   background: #23253a !important;
   color: #fff !important;
@@ -22,4 +21,3 @@ body.dark-mode .MuiDialog-paper {
   background: #23253a !important;
   color: #fff !important;
 }
-/* You can add global styles to this file, and also import other style files */

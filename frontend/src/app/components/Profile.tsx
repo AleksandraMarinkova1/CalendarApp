@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import {
   Box,
   Typography,
@@ -14,6 +15,8 @@ import {
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import EditIcon from '@mui/icons-material/Edit';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { jwtDecode } from 'jwt-decode';
 
 interface UserProfile {
   id?: number;
@@ -28,17 +31,30 @@ export default function Profile() {
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetOldPassword, setResetOldPassword] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [userId, setUserId] = useState('');
 
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
   });
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const decoded: any = jwtDecode(token);
+      console.log('decoded', decoded);
+
+      if (decoded?.userId) {
+        setUserId(decoded?.userId);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -48,6 +64,7 @@ export default function Profile() {
         const res = await axios.get('/api/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         setProfile(res.data);
         setAvatarUrl(localStorage.getItem('avatarUrl') || undefined);
       } catch (e) {
@@ -103,44 +120,30 @@ export default function Profile() {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordMsg(null);
-    setPasswordError(null);
+    setResetMsg(null);
+    setResetError(null);
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All fields are required');
+    if (!resetEmail || !resetOldPassword || !resetNewPassword) {
+      setResetError('All fields are required');
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError('The new password must be at least 6 characters long');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('The new password and confirmation do not match');
-      return;
-    }
+    console.log('profile', profile);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No auth token');
+      await axios.post('/api/reset-password', {
+        email: resetEmail,
+        oldPassword: resetOldPassword,
+        newPassword: resetNewPassword,
+      });
 
-      await axios.put(
-        '/api/users/change-password',
-        {
-          userId: profile.id,
-          currentPassword,
-          newPassword,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setPasswordMsg('Password has been changed successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setResetMsg('Password reset successfully');
+      setResetEmail('');
+      setResetOldPassword('');
+      setResetNewPassword('');
     } catch (err) {
-      setPasswordError('Failed to change password');
+      setResetError('Failed to reset password');
     }
   };
 
@@ -150,6 +153,40 @@ export default function Profile() {
     localStorage.removeItem('avatarUrl');
     window.location.href = '/login';
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No auth token');
+
+        const decoded: any = jwtDecode(token);
+        const userId = decoded.userId;
+
+        if (!userId) throw new Error('No userId in token');
+        console.log('PRAKAM USER ID', userId);
+
+        const res = await axios.get('/api/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { userId },
+        });
+        console.log('PRAKAM USER res', res);
+        setProfile({
+          id: res.data.id,
+          email: res.data.email,
+          firstName: res.data.firstName,
+          lastName: res.data.lastName,
+        });
+        setAvatarUrl(localStorage.getItem('avatarUrl') || undefined);
+        setError(null);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        setError('Error loading profile');
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <Box
@@ -247,58 +284,47 @@ export default function Profile() {
             {msg}
           </Alert>
         )}
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-        <Button type="submit" variant="contained" fullWidth sx={{ mt: 3 }}>
-          Save Changes
-        </Button>
       </form>
 
-      <Divider sx={{ my: 3 }} />
-
       <Typography variant="h6" mb={2}>
-        Change Password
+        Reset Password with Email
       </Typography>
-      <form onSubmit={handleChangePassword}>
+      <form onSubmit={handleResetPassword}>
+        <TextField
+          label="Email"
+          value={resetEmail}
+          onChange={(e) => setResetEmail(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
         <TextField
           label="Old Password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
+          value={resetOldPassword}
+          onChange={(e) => setResetOldPassword(e.target.value)}
           fullWidth
           margin="normal"
           type="password"
         />
         <TextField
           label="New Password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          value={resetNewPassword}
+          onChange={(e) => setResetNewPassword(e.target.value)}
           fullWidth
           margin="normal"
           type="password"
         />
-        <TextField
-          label="Confirm New Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          fullWidth
-          margin="normal"
-          type="password"
-        />
-        {passwordMsg && (
+        {resetMsg && (
           <Alert severity="success" sx={{ mt: 2 }}>
-            {passwordMsg}
+            {resetMsg}
           </Alert>
         )}
-        {passwordError && (
+        {resetError && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            {passwordError}
+            {resetError}
           </Alert>
         )}
         <Button type="submit" variant="contained" fullWidth sx={{ mt: 3 }}>
-          Change Password
+          Reset Password
         </Button>
       </form>
 
